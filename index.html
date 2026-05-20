@@ -703,7 +703,16 @@ function renderMes() {
         <td><input type="text" class="form-control form-control-sm" data-id="${c.id}" data-field="notas" value="${d.notas||''}"></td>
       </tr>`;
     });
-    html += `</tbody></table></div></div></div>`;
+    const difTotal = tReal - tPrev;
+    html += `</tbody>
+        <tfoot class="table-light fw-bold"><tr>
+          <td>Total ${secLabel.replace(/^\S+\s/,'')}</td>
+          <td class="text-end">${fmt(tPrev)}</td>
+          <td class="text-end">${fmt(tReal)}</td>
+          <td><span class="${difTotal>=0?'dif-pos':'dif-neg'}">${difTotal>=0?'+':''}${Math.round(difTotal)}€</span></td>
+          <td></td>
+        </tr></tfoot>
+      </table></div></div></div>`;
   }
   document.getElementById('secciones-mes').innerHTML = html;
   renderComprasDelMes();
