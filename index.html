@@ -51,6 +51,7 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
         <li class="nav-item"><a class="nav-link" onclick="showPage('resumen')"><i class="bi bi-bar-chart"></i> Resumen anual</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showPage('inventario')"><i class="bi bi-box-seam"></i> Inventario</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showPage('cuentapadres')"><i class="bi bi-people"></i> Cuenta padres</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showPage('patrimonio')"><i class="bi bi-bank"></i> Patrimonio</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showPage('config')"><i class="bi bi-gear"></i> Configuración</a></li>
       </ul>
     </div>
@@ -333,6 +334,71 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
   </div>
 
   <!-- CONFIG -->
+  <!-- PATRIMONIO -->
+  <div id="page-patrimonio" class="page">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <h4 class="fw-bold mb-0" style="color:var(--primary)">🏦 Mi patrimonio</h4>
+      <small class="text-muted">Actualizado: <span id="pat-fecha-update">—</span></small>
+    </div>
+    <!-- Resumen -->
+    <div class="row g-3 mb-4" id="pat-resumen"></div>
+    <!-- Tres columnas -->
+    <div class="row g-4">
+      <!-- Liquidez -->
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center" style="background:#e8f0fe;color:var(--primary)">
+            <span>💰 Liquidez</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="añadirPartidaPatrimonio('liquidez')"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="card-body p-0" id="pat-liquidez"></div>
+          <div class="card-footer text-end fw-bold" id="pat-liquidez-total"></div>
+        </div>
+      </div>
+      <!-- Inversiones -->
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center" style="background:#d1fae5;color:#065f46">
+            <span>📈 Inversiones</span>
+            <button class="btn btn-sm btn-outline-success" onclick="añadirPartidaPatrimonio('inversion')"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="card-body p-0" id="pat-inversion"></div>
+          <div class="card-footer text-end fw-bold" id="pat-inversion-total"></div>
+        </div>
+      </div>
+      <!-- Deudas -->
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center" style="background:#fee2e2;color:#dc2626">
+            <span>💸 Deudas</span>
+            <button class="btn btn-sm btn-outline-danger" onclick="añadirPartidaPatrimonio('deuda')"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="card-body p-0" id="pat-deuda"></div>
+          <div class="card-footer text-end fw-bold" id="pat-deuda-total"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal editar valor -->
+    <div class="modal fade" id="modalPatrimonio" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+          <div class="modal-header"><h6 class="modal-title" id="pat-modal-titulo">Editar valor</h6></div>
+          <div class="modal-body">
+            <input type="text" id="pat-modal-nombre" class="form-control mb-2" placeholder="Nombre">
+            <div class="input-group">
+              <input type="number" id="pat-modal-valor" class="form-control" placeholder="0" step="0.01">
+              <span class="input-group-text">€</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-danger btn-sm" id="pat-modal-borrar" onclick="borrarPartidaPatrimonio()">Eliminar</button>
+            <button class="btn btn-primary" onclick="guardarPartidaPatrimonio()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="page-config" class="page">
     <h4 class="fw-bold mb-2" style="color:var(--primary)">⚙️ Configuración</h4>
     <p class="text-muted mb-4">Valores por defecto que se precargan en cada mes nuevo.</p>
@@ -450,6 +516,16 @@ const INVENTARIO_INICIAL = [
   {fecha:'2026-05-20', nombre:'Rivales Predestinados Caja 36', tipo:'Pokémon', precio:356, notas:'x2 · FLASH STORE · #87910', url:'https://www.cardmarket.com/en/Pokemon/Products/Booster-Boxes/Destined-Rivals-Booster-Box?language=4', urlTienda:'https://flashstore.es'},
 ];
 
+const PATRIMONIO_INICIAL = [
+  {tipo:'liquidez',  nombre:'Kutxa',                   valor:0},
+  {tipo:'liquidez',  nombre:'CaixaBank',                valor:0},
+  {tipo:'liquidez',  nombre:'Trade Republic',           valor:0},
+  {tipo:'inversion', nombre:'MyInvestor - S&P 500',     valor:0},
+  {tipo:'inversion', nombre:'MyInvestor - MSCI World',  valor:0},
+  {tipo:'inversion', nombre:'MyInvestor - Fondo Monetario', valor:25000},
+  {tipo:'deuda',     nombre:'Hipoteca Arriola',         valor:0},
+];
+
 let state = {
   mesActual: new Date().getMonth() + 1,
   anioActual: new Date().getFullYear(),
@@ -460,7 +536,10 @@ let state = {
   pagosDeuda: [],
   inventario: [],
   cuentaPadres: [],
+  patrimonio: [],
   editIdx: -1,
+  patModalTipo: '',
+  patModalIdx: -1,
   chart: null
 };
 
@@ -567,13 +646,16 @@ async function init() {
     apiWrite('inventario', rows);
   }
   state.cuentaPadres = parseCuentaPadres(lsGet('cuenta_padres'));
+  const patCached = parsePatrimonio(lsGet('patrimonio'));
+  state.patrimonio = patCached.length ? patCached : PATRIMONIO_INICIAL.map(p=>({...p}));
+  if (!patCached.length) guardarPatrimonioSheet();
 
   if (cats) {
     state.categorias = cats;
     state.pagosDeuda = parsePagos(deudaCached);
     cargarMes();
     migrarCategorias();
-    Promise.all([apiRefresh('categorias'), apiRefresh('deuda'), apiRefresh('inventario'), apiRefresh('cuenta_padres')]).then(([cr, dr, ir, cpr]) => {
+    Promise.all([apiRefresh('categorias'), apiRefresh('deuda'), apiRefresh('inventario'), apiRefresh('cuenta_padres'), apiRefresh('patrimonio')]).then(([cr, dr, ir, cpr, pr]) => {
       const fresh = parseCategorias(cr);
       if (fresh) state.categorias = fresh;
       migrarCategorias();
@@ -581,6 +663,8 @@ async function init() {
       state.inventario = parseInventario(ir);
       migrarURLsInventario();
       state.cuentaPadres = parseCuentaPadres(cpr);
+      const fp = parsePatrimonio(pr);
+      if (fp.length) state.patrimonio = fp;
     }).catch(()=>{});
   } else {
     showSpinner('Primera carga (solo esta vez)...');
@@ -597,6 +681,8 @@ async function init() {
       state.inventario = parseInventario(await apiRefresh('inventario'));
       migrarURLsInventario();
       state.cuentaPadres = parseCuentaPadres(await apiRefresh('cuenta_padres'));
+      const fp = parsePatrimonio(await apiRefresh('patrimonio'));
+      if (fp.length) state.patrimonio = fp;
     } catch(e) { console.error(e); }
     hideSpinner();
     await cargarMes();
@@ -787,6 +873,7 @@ async function showPage(page) {
   if (page === 'resumen') await renderResumen();
   if (page === 'inventario') renderInventario();
   if (page === 'cuentapadres') renderCuentaPadres();
+  if (page === 'patrimonio') renderPatrimonio();
   if (page === 'config') renderConfig();
 }
 
@@ -1295,6 +1382,131 @@ function descargarCSV(rows, filename) {
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
   a.download = filename; a.click();
+}
+
+// ── PATRIMONIO ───────────────────────────────────────────────
+function parsePatrimonio(rows) {
+  return rows && rows.length > 1 ? rows.slice(1).map(r => ({
+    tipo:r[0]||'liquidez', nombre:r[1]||'', valor:+r[2]||0
+  })) : [];
+}
+function guardarPatrimonioSheet() {
+  const fecha = new Date().toLocaleDateString('es-ES');
+  const rows = [['tipo','nombre','valor','fecha_update'],
+    ...state.patrimonio.map(p=>[p.tipo, p.nombre, p.valor, fecha])];
+  lsSet('patrimonio', rows);
+  apiWrite('patrimonio', rows);
+}
+
+function renderPatrimonio() {
+  // Valores auto-calculados
+  const totalColeccionables = state.inventario.reduce((s,i)=>s+i.precio,0);
+  const deudaNoelia = Math.max(0, DEUDA_INICIAL - state.pagosDeuda.reduce((s,p)=>s+p.importe,0));
+  const saldoCuentaPadres = state.cuentaPadres.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0)
+                          - state.cuentaPadres.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+
+  const tipos = ['liquidez','inversion','deuda'];
+  const totales = {};
+  tipos.forEach(t => {
+    totales[t] = state.patrimonio.filter(p=>p.tipo===t).reduce((s,p)=>s+p.valor,0);
+  });
+  totales.inversion += totalColeccionables;
+  totales.liquidez  += saldoCuentaPadres;
+  totales.liquidez  += deudaNoelia;
+
+  const patrimonioNeto = totales.liquidez + totales.inversion - totales.deuda;
+
+  // Resumen top
+  document.getElementById('pat-resumen').innerHTML = `
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#e8f0fe"><div class="label">💰 Liquidez</div><div class="value" style="color:var(--primary)">${fmt(totales.liquidez)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#d1fae5"><div class="label">📈 Inversiones</div><div class="value" style="color:#065f46">${fmt(totales.inversion)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#fee2e2"><div class="label">💸 Deudas</div><div class="value" style="color:#dc2626">${fmt(totales.deuda)}</div></div></div>
+    <div class="col-12 col-md-3"><div class="summary-card" style="background:${patrimonioNeto>=0?'#fef3c7':'#fee2e2'}"><div class="label">🏦 Patrimonio neto</div><div class="value" style="color:${patrimonioNeto>=0?'#92400e':'#dc2626'};font-size:1.4rem">${fmt(patrimonioNeto)}</div></div></div>`;
+
+  // Fecha update
+  const lastRow = state.patrimonio[0];
+  document.getElementById('pat-fecha-update').textContent = lastRow ? new Date().toLocaleDateString('es-ES') : '—';
+
+  // Renderiza cada columna
+  renderPatrimonioColumna('liquidez',  [
+    ...state.patrimonio.filter(p=>p.tipo==='liquidez'),
+    {tipo:'auto', nombre:'Cuenta Padres', valor:saldoCuentaPadres},
+    {tipo:'auto', nombre:'Préstamo Noelia (por cobrar)', valor:deudaNoelia}
+  ]);
+  renderPatrimonioColumna('inversion', [
+    ...state.patrimonio.filter(p=>p.tipo==='inversion'),
+    {tipo:'auto', nombre:'Coleccionables (coste)', valor:totalColeccionables}
+  ]);
+  renderPatrimonioColumna('deuda', [
+    ...state.patrimonio.filter(p=>p.tipo==='deuda')
+  ]);
+
+  document.getElementById('pat-liquidez-total').textContent  = `Total: ${fmt(totales.liquidez)}`;
+  document.getElementById('pat-inversion-total').textContent = `Total: ${fmt(totales.inversion)}`;
+  document.getElementById('pat-deuda-total').textContent     = `Total: ${fmt(totales.deuda)}`;
+}
+
+function renderPatrimonioColumna(tipo, items) {
+  const colores = {liquidez:'var(--primary)', inversion:'#065f46', deuda:'#dc2626'};
+  const partidas = state.patrimonio.filter(p=>p.tipo===tipo);
+  const html = items.map((p) => {
+    const isAuto = p.tipo === 'auto';
+    const idxEnTipo = isAuto ? -1 : partidas.indexOf(p);
+    return `<div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom ${isAuto?'bg-light':''}">
+      <span class="text-muted small">${p.nombre}${isAuto?' <span class="badge bg-secondary ms-1" style="font-size:.6rem">auto</span>':''}</span>
+      <div class="d-flex align-items-center gap-2">
+        <strong style="color:${colores[tipo]||'#333'}">${fmt(p.valor)}</strong>
+        ${!isAuto ? `<button class="btn btn-sm btn-link p-0 text-muted" onclick="editarPartidaPatrimonio('${tipo}',${idxEnTipo})"><i class="bi bi-pencil" style="font-size:.75rem"></i></button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById(`pat-${tipo}`).innerHTML = html || '<div class="text-center text-muted py-3 small">Sin entradas</div>';
+}
+
+function editarPartidaPatrimonio(tipo, idxEnTipo) {
+  const partidas = state.patrimonio.filter(p=>p.tipo===tipo);
+  const item = partidas[idxEnTipo];
+  if (!item) return;
+  state.patModalTipo = tipo;
+  state.patModalIdx  = state.patrimonio.indexOf(item);
+  document.getElementById('pat-modal-titulo').textContent = 'Editar · ' + ({liquidez:'Liquidez',inversion:'Inversión',deuda:'Deuda'}[tipo]);
+  document.getElementById('pat-modal-nombre').value = item.nombre;
+  document.getElementById('pat-modal-valor').value  = item.valor;
+  document.getElementById('pat-modal-borrar').style.display = 'inline-block';
+  new bootstrap.Modal(document.getElementById('modalPatrimonio')).show();
+}
+
+function añadirPartidaPatrimonio(tipo) {
+  state.patModalTipo = tipo;
+  state.patModalIdx  = -1;
+  document.getElementById('pat-modal-titulo').textContent = 'Nueva entrada · ' + ({liquidez:'Liquidez',inversion:'Inversión',deuda:'Deuda'}[tipo]);
+  document.getElementById('pat-modal-nombre').value = '';
+  document.getElementById('pat-modal-valor').value  = '';
+  document.getElementById('pat-modal-borrar').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('modalPatrimonio')).show();
+}
+
+function guardarPartidaPatrimonio() {
+  const nombre = document.getElementById('pat-modal-nombre').value.trim();
+  const valor  = parseFloat(document.getElementById('pat-modal-valor').value)||0;
+  if (!nombre) return;
+  if (state.patModalIdx >= 0) {
+    state.patrimonio[state.patModalIdx] = {tipo:state.patModalTipo, nombre, valor};
+  } else {
+    state.patrimonio.push({tipo:state.patModalTipo, nombre, valor});
+  }
+  guardarPatrimonioSheet();
+  bootstrap.Modal.getInstance(document.getElementById('modalPatrimonio')).hide();
+  renderPatrimonio();
+}
+
+function borrarPartidaPatrimonio() {
+  if (state.patModalIdx < 0) return;
+  if (!confirm('¿Eliminar esta partida?')) return;
+  state.patrimonio.splice(state.patModalIdx, 1);
+  guardarPatrimonioSheet();
+  bootstrap.Modal.getInstance(document.getElementById('modalPatrimonio')).hide();
+  renderPatrimonio();
 }
 
 init().catch(e => { console.error(e); hideSpinner(); });
