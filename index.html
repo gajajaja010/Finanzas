@@ -151,6 +151,14 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
       </button>
       <div class="collapse" id="collapse-deuda">
         <div class="pt-3">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <label class="form-label mb-0 text-muted small">Deuda total inicial:</label>
+            <div class="input-group" style="max-width:180px">
+              <input type="number" id="deuda-inicial-input" class="form-control form-control-sm" step="100">
+              <span class="input-group-text">€</span>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="cambiarDeudaInicial()">Actualizar</button>
+          </div>
           <div class="row g-3 mb-4" id="deuda-cards"></div>
           <div class="card mb-4">
             <div class="card-body">
@@ -295,9 +303,17 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
     </div>
   </div>
 
-  <!-- CUENTA PADRES -->
+  <!-- CUENTAS COMPARTIDAS (Padres + Porcelanas) -->
   <div id="page-cuentapadres" class="page">
-    <h4 class="fw-bold mb-4" style="color:var(--primary)">🏦 Cuenta padres</h4>
+    <h4 class="fw-bold mb-3" style="color:var(--primary)">🏦 Cuentas compartidas</h4>
+    <ul class="nav nav-tabs mb-4" id="tabCuentas">
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-padres">👨‍👩‍👦 Cuenta Padres</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-porcelanas">🏠 Cuenta Porcelanas</a></li>
+    </ul>
+    <div class="tab-content">
+
+    <!-- TAB PADRES -->
+    <div class="tab-pane fade show active" id="tab-padres">
     <div class="row g-3 mb-4" id="cuentapadres-cards"></div>
     <div class="card mb-4">
       <div class="card-header" style="background:var(--primary);color:white;">➕ Añadir movimiento</div>
@@ -332,6 +348,48 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
       <div class="card-header" style="background:var(--primary-light);color:var(--primary);">📋 Movimientos</div>
       <div class="card-body p-0" id="cuentapadres-tabla"></div>
     </div>
+    </div><!-- fin tab-padres -->
+
+    <!-- TAB PORCELANAS -->
+    <div class="tab-pane fade" id="tab-porcelanas">
+      <div class="row g-3 mb-4" id="cp2-cards"></div>
+      <div class="card mb-4">
+        <div class="card-header" style="background:#7c3aed;color:white;">➕ Añadir movimiento</div>
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-6 col-md-2">
+              <label class="form-label">Tipo</label>
+              <select id="cp2-tipo" class="form-select" onchange="this.style.background=this.value==='gasto'?'#fee2e2':this.value==='aportacion_unai'?'#d1fae5':'#e8f0fe'">
+                <option value="aportacion_unai">💚 Aportación Unai</option>
+                <option value="aportacion_noelia">💙 Aportación Noelia</option>
+                <option value="gasto">🔴 Gasto</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Concepto</label>
+              <input type="text" id="cp2-concepto" class="form-control" placeholder="Ej: Comunidad mayo, Luz...">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label">Importe (€)</label>
+              <input type="number" id="cp2-importe" class="form-control" step="0.01" placeholder="0.00">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label">Fecha</label>
+              <input type="date" id="cp2-fecha" class="form-control">
+            </div>
+            <div class="col-12 col-md-2 d-flex align-items-end">
+              <button class="btn w-100" style="background:#7c3aed;color:white" onclick="guardarMovimientoPorcelanas()"><i class="bi bi-plus-circle"></i> Añadir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header" style="background:#ede9fe;color:#7c3aed;">📋 Movimientos</div>
+        <div class="card-body p-0" id="cp2-tabla"></div>
+      </div>
+    </div><!-- fin tab-porcelanas -->
+
+    </div><!-- fin tab-content -->
   </div>
 
   <!-- CONFIG -->
@@ -343,10 +401,10 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
     </div>
     <!-- Resumen -->
     <div class="row g-3 mb-4" id="pat-resumen"></div>
-    <!-- Tres columnas -->
+    <!-- Cuatro columnas -->
     <div class="row g-4">
       <!-- Liquidez -->
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="card h-100">
           <div class="card-header d-flex justify-content-between align-items-center" style="background:#e8f0fe;color:var(--primary)">
             <span>💰 Liquidez</span>
@@ -357,7 +415,7 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
         </div>
       </div>
       <!-- Inversiones -->
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="card h-100">
           <div class="card-header d-flex justify-content-between align-items-center" style="background:#d1fae5;color:#065f46">
             <span>📈 Inversiones</span>
@@ -367,8 +425,19 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
           <div class="card-footer text-end fw-bold" id="pat-inversion-total"></div>
         </div>
       </div>
+      <!-- Por cobrar -->
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center" style="background:#fef3c7;color:#92400e">
+            <span>🕐 Por cobrar</span>
+            <button class="btn btn-sm btn-outline-warning" onclick="añadirPartidaPatrimonio('cobrar')"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="card-body p-0" id="pat-cobrar"></div>
+          <div class="card-footer text-end fw-bold" id="pat-cobrar-total"></div>
+        </div>
+      </div>
       <!-- Deudas -->
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="card h-100">
           <div class="card-header d-flex justify-content-between align-items-center" style="background:#fee2e2;color:#dc2626">
             <span>💸 Deudas</span>
@@ -440,7 +509,12 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbzFNf-KTpvU5jk1fhoOZwz0VndzTOkLrKyYOuS9djcSSrzOTaFAB5eeheyf3362BIjUlw/exec';
-const DEUDA_INICIAL = 50000;
+function getDeudaInicial() {
+  return parseFloat(localStorage.getItem('fin_deuda_inicial')) || 50000;
+}
+function setDeudaInicial(val) {
+  localStorage.setItem('fin_deuda_inicial', val);
+}
 const MESES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const SECCIONES = {
   ingresos: '💵 Ingresos',
@@ -538,6 +612,7 @@ let state = {
   inventario: [],
   cuentaPadres: [],
   patrimonio: [],
+  cuentaPorcelanas: [],
   editIdx: -1,
   patModalTipo: '',
   patModalIdx: -1,
@@ -633,6 +708,11 @@ function parseCuentaPadres(rows) {
     fecha:normFecha(r[0]||''), tipo:r[1]||'', concepto:r[2]||'', importe:+r[3]||0
   })) : [];
 }
+function parseCuentaPorcelanas(rows) {
+  return rows && rows.length > 1 ? rows.slice(1).map(r => ({
+    fecha:normFecha(r[0]||''), tipo:r[1]||'', concepto:r[2]||'', importe:+r[3]||0
+  })) : [];
+}
 
 async function init() {
   const catCached = lsGet('categorias');
@@ -646,7 +726,8 @@ async function init() {
     const rows = [['fecha','nombre','tipo','precio','notas','url','urlTienda'],...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||'',i.urlTienda||''])];
     apiWrite('inventario', rows);
   }
-  state.cuentaPadres = parseCuentaPadres(lsGet('cuenta_padres'));
+  state.cuentaPadres    = parseCuentaPadres(lsGet('cuenta_padres'));
+  state.cuentaPorcelanas = parseCuentaPorcelanas(lsGet('cuenta_porcelanas'));
   const patCached = parsePatrimonio(lsGet('patrimonio'));
   state.patrimonio = patCached.length ? patCached : PATRIMONIO_INICIAL.map(p=>({...p}));
   if (!patCached.length) guardarPatrimonioSheet();
@@ -656,7 +737,7 @@ async function init() {
     state.pagosDeuda = parsePagos(deudaCached);
     cargarMes();
     migrarCategorias();
-    Promise.all([apiRefresh('categorias'), apiRefresh('deuda'), apiRefresh('inventario'), apiRefresh('cuenta_padres'), apiRefresh('patrimonio')]).then(([cr, dr, ir, cpr, pr]) => {
+    Promise.all([apiRefresh('categorias'), apiRefresh('deuda'), apiRefresh('inventario'), apiRefresh('cuenta_padres'), apiRefresh('patrimonio'), apiRefresh('cuenta_porcelanas')]).then(([cr, dr, ir, cpr, pr, cp2r]) => {
       const fresh = parseCategorias(cr);
       if (fresh) state.categorias = fresh;
       migrarCategorias();
@@ -666,6 +747,7 @@ async function init() {
       state.cuentaPadres = parseCuentaPadres(cpr);
       const fp = parsePatrimonio(pr);
       if (fp.length) state.patrimonio = fp;
+      state.cuentaPorcelanas = parseCuentaPorcelanas(cp2r);
     }).catch(()=>{});
   } else {
     showSpinner('Primera carga (solo esta vez)...');
@@ -681,7 +763,8 @@ async function init() {
       state.pagosDeuda = parsePagos(await apiRefresh('deuda'));
       state.inventario = parseInventario(await apiRefresh('inventario'));
       migrarURLsInventario();
-      state.cuentaPadres = parseCuentaPadres(await apiRefresh('cuenta_padres'));
+      state.cuentaPadres     = parseCuentaPadres(await apiRefresh('cuenta_padres'));
+      state.cuentaPorcelanas = parseCuentaPorcelanas(await apiRefresh('cuenta_porcelanas'));
       const fp = parsePatrimonio(await apiRefresh('patrimonio'));
       if (fp.length) state.patrimonio = fp;
     } catch(e) { console.error(e); }
@@ -695,6 +778,23 @@ function migrarCategorias() {
   let cambio = false;
   state.categorias.forEach(c => {
     if (renombrar[c.nombre]) { c.nombre = renombrar[c.nombre]; cambio = true; }
+  });
+  // Desactivar categorías de Porcelanas que paga Noelia
+  const desactivarPorcelanas = ['IBI Porcelanas','Comunidad Porcelanas','Seguro hogar Porcelanas','Electricidad Porcelanas','Agua Porcelanas','Mantenimiento / reparaciones'];
+  state.categorias.forEach(c => {
+    if (desactivarPorcelanas.includes(c.nombre) && c.activa) { c.activa = false; cambio = true; }
+  });
+  // Añadir nuevas categorías de Porcelanas si no existen
+  const nuevas = [
+    {nombre:'Aportación cuenta conjunta Porcelanas', seccion:'porcelanas', defecto:200},
+    {nombre:'Otros gastos Porcelanas', seccion:'porcelanas', defecto:0}
+  ];
+  nuevas.forEach(n => {
+    if (!state.categorias.find(c => c.nombre === n.nombre)) {
+      const maxId = Math.max(0, ...state.categorias.map(c=>c.id));
+      state.categorias.push({id:maxId+1, nombre:n.nombre, seccion:n.seccion, defecto:n.defecto, activa:true});
+      cambio = true;
+    }
   });
   if (cambio) guardarCategoriasSheet();
 }
@@ -883,7 +983,7 @@ async function showPage(page) {
   document.getElementById(`page-${page}`).classList.add('active');
   if (page === 'resumen') await renderResumen();
   if (page === 'inventario') renderInventario();
-  if (page === 'cuentapadres') renderCuentaPadres();
+  if (page === 'cuentapadres') { renderCuentaPadres(); renderCuentaPorcelanas(); }
   if (page === 'patrimonio') renderPatrimonio();
   if (page === 'config') renderConfig();
 }
@@ -1260,13 +1360,23 @@ function irAMes(mes) {
   showPage('mes'); cargarMes();
 }
 
+function cambiarDeudaInicial() {
+  const val = parseFloat(document.getElementById('deuda-inicial-input').value);
+  if (!val || val <= 0) { showAlert('❌ Introduce un importe válido', 'danger'); return; }
+  setDeudaInicial(val);
+  renderDeuda();
+  showAlert('✅ Deuda inicial actualizada a ' + fmt(val));
+}
+
 function renderDeuda() {
+  const inputEl = document.getElementById('deuda-inicial-input');
+  if (inputEl && !inputEl.value) inputEl.value = getDeudaInicial();
   const total = state.pagosDeuda.reduce((s,p)=>s+p.importe,0);
-  const pendiente = Math.max(0, DEUDA_INICIAL - total);
+  const pendiente = Math.max(0, getDeudaInicial() - total);
   const meses = Math.round(pendiente/200);
-  const pct = Math.round(total/DEUDA_INICIAL*100);
+  const pct = Math.round(total/getDeudaInicial()*100);
   document.getElementById('deuda-cards').innerHTML = `
-    <div class="col-6 col-md-3"><div class="summary-card" style="background:#e8f0fe"><div class="label">Deuda inicial</div><div class="value" style="color:var(--primary)">${fmt(DEUDA_INICIAL)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#e8f0fe"><div class="label">Deuda inicial</div><div class="value" style="color:var(--primary)">${fmt(getDeudaInicial())}</div></div></div>
     <div class="col-6 col-md-3"><div class="summary-card" style="background:#d1fae5"><div class="label">Total recibido</div><div class="value" style="color:#065f46">${fmt(total)}</div></div></div>
     <div class="col-6 col-md-3"><div class="summary-card" style="background:#fee2e2"><div class="label">Deuda pendiente</div><div class="value" style="color:#dc2626">${fmt(pendiente)}</div></div></div>
     <div class="col-6 col-md-3"><div class="summary-card" style="background:#fef3c7"><div class="label">Meses restantes</div><div class="value" style="color:#92400e">${meses}</div></div></div>`;
@@ -1395,6 +1505,72 @@ function descargarCSV(rows, filename) {
   a.download = filename; a.click();
 }
 
+// ── CUENTA CONJUNTA PORCELANAS ───────────────────────────────
+function renderCuentaPorcelanas() {
+  const fechaInput = document.getElementById('cp2-fecha');
+  if (!fechaInput.value) fechaInput.value = new Date().toISOString().split('T')[0];
+
+  const movs = [...state.cuentaPorcelanas].sort((a,b) => b.fecha.localeCompare(a.fecha));
+  const totUnai   = state.cuentaPorcelanas.filter(m=>m.tipo==='aportacion_unai').reduce((s,m)=>s+m.importe,0);
+  const totNoelia = state.cuentaPorcelanas.filter(m=>m.tipo==='aportacion_noelia').reduce((s,m)=>s+m.importe,0);
+  const totGasto  = state.cuentaPorcelanas.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const saldo = totUnai + totNoelia - totGasto;
+
+  document.getElementById('cp2-cards').innerHTML = `
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:${saldo>=0?'#ede9fe':'#fee2e2'}"><div class="label">💰 Saldo cuenta</div><div class="value" style="color:${saldo>=0?'#7c3aed':'#dc2626'}">${fmt(saldo)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#d1fae5"><div class="label">💚 Aportado Unai</div><div class="value" style="color:#065f46">${fmt(totUnai)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#e8f0fe"><div class="label">💙 Aportado Noelia</div><div class="value" style="color:var(--primary)">${fmt(totNoelia)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#fee2e2"><div class="label">🔴 Total gastado</div><div class="value" style="color:#dc2626">${fmt(totGasto)}</div></div></div>`;
+
+  if (!movs.length) {
+    document.getElementById('cp2-tabla').innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3"></i><p class="mt-2">Sin movimientos registrados</p></div>';
+    return;
+  }
+  const tipoLabel = {aportacion_unai:'💚 Unai', aportacion_noelia:'💙 Noelia', gasto:'🔴 Gasto'};
+  const filas = movs.map(m => {
+    const idx = state.cuentaPorcelanas.findIndex(x=>x.fecha===m.fecha&&x.tipo===m.tipo&&x.concepto===m.concepto&&x.importe===m.importe);
+    return `<tr>
+      <td>${formatFecha(m.fecha)}</td>
+      <td>${tipoLabel[m.tipo]||m.tipo}</td>
+      <td>${m.concepto||'—'}</td>
+      <td class="text-end fw-bold">${fmt(m.importe)}</td>
+      <td><button class="btn btn-outline-danger btn-sm" onclick="eliminarMovimientoPorcelanas(${idx})"><i class="bi bi-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cp2-tabla').innerHTML = `
+    <div class="table-responsive"><table class="table table-hover mb-0">
+      <thead class="table-light"><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th class="text-end">Importe</th><th></th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table></div>`;
+}
+
+async function guardarMovimientoPorcelanas() {
+  const tipo     = document.getElementById('cp2-tipo').value;
+  const concepto = document.getElementById('cp2-concepto').value.trim();
+  const importe  = parseFloat(document.getElementById('cp2-importe').value)||0;
+  const fecha    = document.getElementById('cp2-fecha').value;
+  if (!importe) { showAlert('❌ Indica el importe', 'danger'); return; }
+  state.cuentaPorcelanas.push({fecha, tipo, concepto, importe});
+  state.cuentaPorcelanas.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const rows = [['fecha','tipo','concepto','importe'],...state.cuentaPorcelanas.map(m=>[m.fecha,m.tipo,m.concepto,m.importe])];
+  lsSet('cuenta_porcelanas', rows);
+  await apiWrite('cuenta_porcelanas', rows);
+  document.getElementById('cp2-concepto').value = '';
+  document.getElementById('cp2-importe').value  = '';
+  showAlert('✅ Movimiento añadido');
+  renderCuentaPorcelanas();
+}
+
+async function eliminarMovimientoPorcelanas(idx) {
+  if (!confirm('¿Eliminar este movimiento?')) return;
+  state.cuentaPorcelanas.splice(idx, 1);
+  const rows = [['fecha','tipo','concepto','importe'],...state.cuentaPorcelanas.map(m=>[m.fecha,m.tipo,m.concepto,m.importe])];
+  lsSet('cuenta_porcelanas', rows);
+  await apiWrite('cuenta_porcelanas', rows);
+  showAlert('✅ Eliminado');
+  renderCuentaPorcelanas();
+}
+
 // ── PATRIMONIO ───────────────────────────────────────────────
 function parsePatrimonio(rows) {
   return rows && rows.length > 1 ? rows.slice(1).map(r => ({
@@ -1412,41 +1588,48 @@ function guardarPatrimonioSheet() {
 function renderPatrimonio() {
   // Valores auto-calculados
   const totalColeccionables = state.inventario.reduce((s,i)=>s+i.precio,0);
-  const deudaNoelia = Math.max(0, DEUDA_INICIAL - state.pagosDeuda.reduce((s,p)=>s+p.importe,0));
+  const deudaNoelia = Math.max(0, getDeudaInicial() - state.pagosDeuda.reduce((s,p)=>s+p.importe,0));
   const saldoCuentaPadres = state.cuentaPadres.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0)
                           - state.cuentaPadres.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const saldoPorcelanas = state.cuentaPorcelanas.filter(m=>m.tipo!=='gasto').reduce((s,m)=>s+m.importe,0)
+                        - state.cuentaPorcelanas.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const miMitadPorcelanas = saldoPorcelanas / 2;
 
-  const tipos = ['liquidez','inversion','deuda'];
+  const tipos = ['liquidez','inversion','cobrar','deuda'];
   const totales = {};
   tipos.forEach(t => {
     totales[t] = state.patrimonio.filter(p=>p.tipo===t).reduce((s,p)=>s+p.valor,0);
   });
   totales.inversion += totalColeccionables;
-  totales.liquidez  += saldoCuentaPadres;
-  totales.liquidez  += deudaNoelia;
+  totales.liquidez  += saldoCuentaPadres + miMitadPorcelanas;
+  totales.cobrar    += deudaNoelia;
 
-  const patrimonioNeto = totales.liquidez + totales.inversion - totales.deuda;
+  const patrimonioNeto = totales.liquidez + totales.inversion + totales.cobrar - totales.deuda;
 
   // Resumen top
   document.getElementById('pat-resumen').innerHTML = `
-    <div class="col-6 col-md-3"><div class="summary-card" style="background:#e8f0fe"><div class="label">💰 Liquidez</div><div class="value" style="color:var(--primary)">${fmt(totales.liquidez)}</div></div></div>
-    <div class="col-6 col-md-3"><div class="summary-card" style="background:#d1fae5"><div class="label">📈 Inversiones</div><div class="value" style="color:#065f46">${fmt(totales.inversion)}</div></div></div>
-    <div class="col-6 col-md-3"><div class="summary-card" style="background:#fee2e2"><div class="label">💸 Deudas</div><div class="value" style="color:#dc2626">${fmt(totales.deuda)}</div></div></div>
-    <div class="col-12 col-md-3"><div class="summary-card" style="background:${patrimonioNeto>=0?'#fef3c7':'#fee2e2'}"><div class="label">🏦 Patrimonio neto</div><div class="value" style="color:${patrimonioNeto>=0?'#92400e':'#dc2626'};font-size:1.4rem">${fmt(patrimonioNeto)}</div></div></div>`;
+    <div class="col-6 col-md-2"><div class="summary-card" style="background:#e8f0fe"><div class="label">💰 Liquidez</div><div class="value" style="color:var(--primary);font-size:1.3rem">${fmt(totales.liquidez)}</div></div></div>
+    <div class="col-6 col-md-2"><div class="summary-card" style="background:#d1fae5"><div class="label">📈 Inversiones</div><div class="value" style="color:#065f46;font-size:1.3rem">${fmt(totales.inversion)}</div></div></div>
+    <div class="col-6 col-md-2"><div class="summary-card" style="background:#fef3c7"><div class="label">🕐 Por cobrar</div><div class="value" style="color:#92400e;font-size:1.3rem">${fmt(totales.cobrar)}</div></div></div>
+    <div class="col-6 col-md-2"><div class="summary-card" style="background:#fee2e2"><div class="label">💸 Deudas</div><div class="value" style="color:#dc2626;font-size:1.3rem">${fmt(totales.deuda)}</div></div></div>
+    <div class="col-12 col-md-4"><div class="summary-card" style="background:${patrimonioNeto>=0?'#f0fdf4':'#fee2e2'}"><div class="label">🏦 Patrimonio neto</div><div class="value" style="color:${patrimonioNeto>=0?'#065f46':'#dc2626'}">${fmt(patrimonioNeto)}</div></div></div>`;
 
   // Fecha update
-  const lastRow = state.patrimonio[0];
-  document.getElementById('pat-fecha-update').textContent = lastRow ? new Date().toLocaleDateString('es-ES') : '—';
+  document.getElementById('pat-fecha-update').textContent = new Date().toLocaleDateString('es-ES');
 
   // Renderiza cada columna
-  renderPatrimonioColumna('liquidez',  [
+  renderPatrimonioColumna('liquidez', [
     ...state.patrimonio.filter(p=>p.tipo==='liquidez'),
     {tipo:'auto', nombre:'Cuenta Padres', valor:saldoCuentaPadres},
-    {tipo:'auto', nombre:'Préstamo Noelia (por cobrar)', valor:deudaNoelia}
+    {tipo:'auto', nombre:'Cuenta Porcelanas (tu 50%)', valor:miMitadPorcelanas}
   ]);
   renderPatrimonioColumna('inversion', [
     ...state.patrimonio.filter(p=>p.tipo==='inversion'),
     {tipo:'auto', nombre:'Coleccionables (coste)', valor:totalColeccionables}
+  ]);
+  renderPatrimonioColumna('cobrar', [
+    ...state.patrimonio.filter(p=>p.tipo==='cobrar'),
+    {tipo:'auto', nombre:'Préstamo Noelia', valor:deudaNoelia}
   ]);
   renderPatrimonioColumna('deuda', [
     ...state.patrimonio.filter(p=>p.tipo==='deuda')
@@ -1454,11 +1637,12 @@ function renderPatrimonio() {
 
   document.getElementById('pat-liquidez-total').textContent  = `Total: ${fmt(totales.liquidez)}`;
   document.getElementById('pat-inversion-total').textContent = `Total: ${fmt(totales.inversion)}`;
+  document.getElementById('pat-cobrar-total').textContent    = `Total: ${fmt(totales.cobrar)}`;
   document.getElementById('pat-deuda-total').textContent     = `Total: ${fmt(totales.deuda)}`;
 }
 
 function renderPatrimonioColumna(tipo, items) {
-  const colores = {liquidez:'var(--primary)', inversion:'#065f46', deuda:'#dc2626'};
+  const colores = {liquidez:'var(--primary)', inversion:'#065f46', cobrar:'#92400e', deuda:'#dc2626'};
   const partidas = state.patrimonio.filter(p=>p.tipo===tipo);
   const html = items.map((p) => {
     const isAuto = p.tipo === 'auto';
@@ -1480,7 +1664,7 @@ function editarPartidaPatrimonio(tipo, idxEnTipo) {
   if (!item) return;
   state.patModalTipo = tipo;
   state.patModalIdx  = state.patrimonio.indexOf(item);
-  document.getElementById('pat-modal-titulo').textContent = 'Editar · ' + ({liquidez:'Liquidez',inversion:'Inversión',deuda:'Deuda'}[tipo]);
+  document.getElementById('pat-modal-titulo').textContent = 'Editar · ' + ({liquidez:'Liquidez',inversion:'Inversión',cobrar:'Por cobrar',deuda:'Deuda'}[tipo]);
   document.getElementById('pat-modal-nombre').value = item.nombre;
   document.getElementById('pat-modal-valor').value  = item.valor;
   document.getElementById('pat-modal-borrar').style.display = 'inline-block';
@@ -1490,7 +1674,7 @@ function editarPartidaPatrimonio(tipo, idxEnTipo) {
 function añadirPartidaPatrimonio(tipo) {
   state.patModalTipo = tipo;
   state.patModalIdx  = -1;
-  document.getElementById('pat-modal-titulo').textContent = 'Nueva entrada · ' + ({liquidez:'Liquidez',inversion:'Inversión',deuda:'Deuda'}[tipo]);
+  document.getElementById('pat-modal-titulo').textContent = 'Nueva entrada · ' + ({liquidez:'Liquidez',inversion:'Inversión',cobrar:'Por cobrar',deuda:'Deuda'}[tipo]);
   document.getElementById('pat-modal-nombre').value = '';
   document.getElementById('pat-modal-valor').value  = '';
   document.getElementById('pat-modal-borrar').style.display = 'none';
