@@ -226,6 +226,10 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <h4 class="fw-bold mb-0" style="color:var(--primary)">📦 Inventario coleccionables</h4>
       <div class="d-flex gap-2">
+        <div class="input-group input-group-sm" style="width:200px">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" id="inv-buscar" class="form-control" placeholder="Buscar..." oninput="renderInventario()">
+        </div>
         <select id="filtro-tipo" class="form-select form-select-sm" style="width:auto" onchange="renderInventario()">
           <option value="">Todos</option>
           <option value="Pokémon">Pokémon</option>
@@ -991,9 +995,14 @@ async function showPage(page) {
 function renderInventario() {
   const fechaInput = document.getElementById('inv-fecha');
   if (!fechaInput.value) fechaInput.value = new Date().toISOString().split('T')[0];
-  const filtro = document.getElementById('filtro-tipo').value;
-  const orden  = document.getElementById('orden-inv').value;
-  const items = filtro ? state.inventario.filter(i => i.tipo === filtro) : state.inventario;
+  const filtro  = document.getElementById('filtro-tipo').value;
+  const orden   = document.getElementById('orden-inv').value;
+  const buscar  = (document.getElementById('inv-buscar').value || '').toLowerCase().trim();
+  const items = state.inventario.filter(i => {
+    if (filtro && i.tipo !== filtro) return false;
+    if (buscar && !`${i.nombre} ${i.notas} ${i.tipo}`.toLowerCase().includes(buscar)) return false;
+    return true;
+  });
   const sorted = [...items].sort((a,b) => {
     if (orden === 'fecha-asc')   return a.fecha.localeCompare(b.fecha);
     if (orden === 'precio-desc') return b.precio - a.precio;
