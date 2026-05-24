@@ -677,7 +677,7 @@ function fmt(n) { return (Math.round(n*100)/100).toLocaleString('es-ES', {minimu
 
 function parseCategorias(rows) {
   return rows && rows.length > 1 ? rows.slice(1).map(r => ({
-    id:+r[0], nombre:r[1], seccion:r[2], defecto:+r[3]||0, activa:r[4]!=='false'
+    id:+r[0], nombre:r[1], seccion:r[2], defecto:+r[3]||0, activa:r[4]!==false && String(r[4]).toLowerCase()!=='false'
   })) : null;
 }
 function normFecha(str) {
@@ -832,7 +832,7 @@ function txtDif(dif) {
 
 async function guardarCategoriasSheet() {
   const rows = [['id','nombre','seccion','defecto','activa'],
-    ...state.categorias.map(c => [c.id, c.nombre, c.seccion, c.defecto, c.activa])];
+    ...state.categorias.map(c => [c.id, c.nombre, c.seccion, c.defecto, c.activa ? 'true' : 'false'])];
   lsSet('categorias', rows);
   await apiWrite('categorias', rows);
 }
