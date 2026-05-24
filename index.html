@@ -165,13 +165,14 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
       </button>
       <div class="collapse" id="collapse-deuda">
         <div class="pt-3">
-          <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
             <label class="form-label mb-0 text-muted small">Deuda total inicial:</label>
             <div class="input-group" style="max-width:180px">
               <input type="number" id="deuda-inicial-input" class="form-control form-control-sm" step="100">
               <span class="input-group-text">€</span>
             </div>
             <button class="btn btn-sm btn-outline-secondary" onclick="cambiarDeudaInicial()">Actualizar</button>
+            <button class="btn btn-sm btn-outline-primary ms-auto" onclick="recargarDeuda()"><i class="bi bi-arrow-clockwise"></i> Recargar pagos</button>
           </div>
           <div class="row g-3 mb-4" id="deuda-cards"></div>
           <div class="card mb-4">
@@ -1548,6 +1549,16 @@ function renderDeuda() {
       <thead class="table-light"><tr><th>Mes/Año</th><th class="text-end">Importe</th><th>Fecha</th><th>Forma</th><th>Notas</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+}
+
+async function recargarDeuda() {
+  showSpinner('Cargando pagos...');
+  const rows = await apiRefresh('deuda');
+  state.pagosDeuda = parsePagos(rows);
+  hideSpinner();
+  renderDeuda();
+  renderPatrimonio();
+  showAlert(state.pagosDeuda.length ? `✅ ${state.pagosDeuda.length} pago(s) cargados` : '⚠️ No hay pagos registrados en el servidor');
 }
 
 async function guardarPago() {
