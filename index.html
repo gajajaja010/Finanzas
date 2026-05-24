@@ -935,6 +935,23 @@ function renderMes() {
   renderComprasDelMes();
 }
 
+function actualizarCardsResumen() {
+  const cats = state.categorias.filter(c => c.activa);
+  let totalIngReal = 0, totalGastReal = 0;
+  cats.forEach(c => {
+    const d = state.datosMes[c.id] || {real:0};
+    if (c.seccion === 'ingresos') totalIngReal += d.real;
+    else totalGastReal += d.real;
+  });
+  const libre = totalIngReal - totalGastReal;
+  const pctAhorro = totalIngReal > 0 ? Math.round(libre / totalIngReal * 100) : 0;
+  document.getElementById('resumen-cards').innerHTML = `
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#e8f0fe"><div class="label">💵 Ingresos</div><div class="value" style="color:var(--primary)">${fmt(totalIngReal)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#fee2e2"><div class="label">📉 Gastos</div><div class="value" style="color:#dc2626">${fmt(totalGastReal)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:${libre>=0?'#d1fae5':'#fee2e2'}"><div class="label">⚖️ Balance</div><div class="value" style="color:${libre>=0?'#065f46':'#dc2626'}">${fmt(libre)}</div></div></div>
+    <div class="col-6 col-md-3"><div class="summary-card" style="background:#fef3c7"><div class="label">📈 % Ahorro</div><div class="value" style="color:#92400e">${pctAhorro}%</div></div></div>`;
+}
+
 let _autoguardarTimer = null;
 function actualizarLocal(id, field, val, esIngreso=false, esNeutro=false, secKey='') {
   if (!state.datosMes[id]) state.datosMes[id] = {previsto:0,real:0,notas:''};
@@ -956,6 +973,7 @@ function actualizarLocal(id, field, val, esIngreso=false, esNeutro=false, secKey
     if (elHead) elHead.textContent = fmt(tReal);
     if (elDif)  { elDif.textContent = txtDif(esIngreso ? difT : -difT); }
   }
+  actualizarCardsResumen();
   // Autoguardado con debounce de 2 segundos
   clearTimeout(_autoguardarTimer);
   const badge = document.getElementById('autosave-badge');
