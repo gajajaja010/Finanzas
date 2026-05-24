@@ -1000,6 +1000,7 @@ function cambiarMes(delta) {
 async function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
+  if (page === 'mes') renderMes();
   if (page === 'resumen') await renderResumen();
   if (page === 'inventario') renderInventario();
   if (page === 'cuentapadres') { renderCuentaPadres(); renderCuentaPorcelanas(); }
