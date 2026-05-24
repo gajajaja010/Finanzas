@@ -960,12 +960,14 @@ function actualizarLocal(id, field, val, esIngreso=false, esNeutro=false, secKey
   clearTimeout(_autoguardarTimer);
   const badge = document.getElementById('autosave-badge');
   if (badge) { badge.textContent = '...guardando'; badge.className = 'badge bg-warning text-dark ms-2'; }
+  // Capturar mes/año y datos AHORA, no cuando dispare el timer
+  const _keyGuardar = `mes_${state.anioActual}_${state.mesActual}`;
+  const _datosGuardar = JSON.parse(JSON.stringify(state.datosMes));
   _autoguardarTimer = setTimeout(async () => {
-    const key = `mes_${state.anioActual}_${state.mesActual}`;
     const rows = [['cat_id','previsto','real','notas'],
-      ...Object.entries(state.datosMes).map(([id,d]) => [id, d.previsto, d.real, d.notas])];
-    lsSet(key, rows);
-    await apiWrite(key, rows);
+      ...Object.entries(_datosGuardar).map(([id,d]) => [id, d.previsto, d.real, d.notas])];
+    lsSet(_keyGuardar, rows);
+    await apiWrite(_keyGuardar, rows);
     await actualizarResumenSheet();
     if (badge) { badge.textContent = '✓ Guardado'; badge.className = 'badge bg-success ms-2'; setTimeout(()=>{ badge.textContent=''; badge.className=''; },3000); }
   }, 2000);
