@@ -875,6 +875,12 @@ async function cargarMes() {
   }).catch(()=>{});
 }
 
+function totalInventarioMes(anio, mes) {
+  return state.inventario
+    .filter(i => { if (!i.fecha) return false; const [a,m] = i.fecha.split('-'); return +a===anio && +m===mes; })
+    .reduce((s,i) => s + i.precio, 0);
+}
+
 function renderMes() {
   document.getElementById('titulo-mes').textContent = `${MESES[state.mesActual]} ${state.anioActual}`;
   const cats = state.categorias.filter(c => c.activa);
@@ -884,6 +890,7 @@ function renderMes() {
     if (c.seccion === 'ingresos') { totalIngReal += d.real; totalIngPrev += d.previsto; }
     else totalGastReal += d.real;
   });
+  totalGastReal += totalInventarioMes(state.anioActual, state.mesActual);
   const libre = totalIngReal - totalGastReal;
   const pctAhorro = totalIngReal > 0 ? Math.round(libre/totalIngReal*100) : 0;
 
@@ -946,6 +953,7 @@ function actualizarCardsResumen() {
     if (c.seccion === 'ingresos') totalIngReal += d.real;
     else totalGastReal += d.real;
   });
+  totalGastReal += totalInventarioMes(state.anioActual, state.mesActual);
   const libre = totalIngReal - totalGastReal;
   const pctAhorro = totalIngReal > 0 ? Math.round(libre / totalIngReal * 100) : 0;
   document.getElementById('resumen-cards').innerHTML = `
@@ -1018,6 +1026,7 @@ async function actualizarResumenSheet() {
     const d = state.datosMes[c.id]||{real:0};
     if (c.seccion==='ingresos') ing+=d.real; else gast+=d.real;
   });
+  gast += totalInventarioMes(state.anioActual, state.mesActual);
   const resumenRows = await apiGet('resumen_anual');
   let filas = resumenRows.length>1 ? resumenRows.slice(1) : [];
   const idx = filas.findIndex(r=>+r[0]===state.anioActual && +r[1]===state.mesActual);
@@ -1401,56 +1410,75 @@ function _dibujarResumen(resumenRows) {
 async function renderDesgloseCategorias() {
   const anio = state.anioResumen;
   const cats = state.categorias.filter(c => c.activa);
-  // Acumular real y previsto por cat_id leyendo los 12 meses de localStorage
-  const totReal = {}, totPrev = {};
-  cats.forEach(c => { totReal[c.id] = 0; totPrev[c.id] = 0; });
+  const MESES_CORTOS = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  // Cargar datos de los 12 meses: mesData[m][cat_id] = {real, previsto}
+  const mesData = {};
+  const mesesConDatos = [];
   for (let m = 1; m <= 12; m++) {
     const rows = lsGet(`mes_${anio}_${m}`);
     if (!rows || rows.length < 2) continue;
-    rows.slice(1).forEach(r => {
-      const id = +r[0];
-      if (totReal[id] !== undefined) {
-        totReal[id] += +r[2] || 0;
-        totPrev[id] += +r[1] || 0;
-      }
-    });
+    mesData[m] = {};
+    rows.slice(1).forEach(r => { mesData[m][+r[0]] = {previsto:+r[1]||0, real:+r[2]||0}; });
+    mesesConDatos.push(m);
   }
+
+  if (!mesesConDatos.length) {
+    const el = document.getElementById('desglose-categorias');
+    if (el) el.innerHTML = '<p class="p-3 text-muted">No hay datos para este año.</p>';
+    return;
+  }
+
+  const thMeses = mesesConDatos.map(m => `<th class="text-end" style="min-width:60px">${MESES_CORTOS[m]}</th>`).join('');
   let html = '';
+
   for (const [secKey, secLabel] of Object.entries(SECCIONES)) {
     const secCats = cats.filter(c => c.seccion === secKey);
     if (!secCats.length) continue;
     const esIngreso = secKey === 'ingresos';
-    const tReal = secCats.reduce((s,c) => s + totReal[c.id], 0);
-    const tPrev = secCats.reduce((s,c) => s + totPrev[c.id], 0);
+
     const filas = secCats.map(c => {
-      const r = totReal[c.id], p = totPrev[c.id];
-      const dif = esIngreso ? (r - p) : (p - r);
-      const difColor = dif >= 0 ? '#059669' : '#dc2626';
+      let total = 0;
+      const celdas = mesesConDatos.map(m => {
+        const v = (mesData[m]||{})[c.id]?.real || 0;
+        total += v;
+        return `<td class="text-end">${v ? fmt(v) : '<span class="text-muted">—</span>'}</td>`;
+      }).join('');
       return `<tr>
-        <td style="padding-left:1.5rem">${c.nombre}</td>
-        <td class="text-end">${fmt(p)}</td>
-        <td class="text-end fw-bold">${fmt(r)}</td>
-        <td class="text-end" style="color:${difColor};font-size:0.85em">${dif>0?'+':''}${Math.round(dif)}€</td>
+        <td>${c.nombre}</td>
+        ${celdas}
+        <td class="text-end fw-bold">${fmt(total)}</td>
       </tr>`;
     }).join('');
-    const difTot = esIngreso ? (tReal - tPrev) : (tPrev - tReal);
-    const difTotColor = difTot >= 0 ? '#059669' : '#dc2626';
+
+    // Fila de totales por mes
+    const totalesMes = mesesConDatos.map(m => {
+      return secCats.reduce((s,c) => s + ((mesData[m]||{})[c.id]?.real || 0), 0);
+    });
+    const totalAnio = totalesMes.reduce((s,v) => s+v, 0);
+    const celdaTotales = totalesMes.map(v => `<td class="text-end">${fmt(v)}</td>`).join('');
+
     html += `<div class="mb-0">
       <div class="px-3 py-2 fw-bold small text-uppercase" style="background:var(--primary-light);color:var(--primary);letter-spacing:.05em">${secLabel}</div>
-      <table class="table table-sm table-hover mb-0">
-        <thead class="table-light"><tr><th>Categoría</th><th class="text-end">Previsto</th><th class="text-end">Real</th><th class="text-end" style="width:80px">Dif.</th></tr></thead>
+      <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0" style="font-size:0.82em">
+        <thead class="table-light"><tr>
+          <th style="min-width:180px">Categoría</th>
+          ${thMeses}
+          <th class="text-end" style="min-width:70px">Total</th>
+        </tr></thead>
         <tbody>${filas}</tbody>
         <tfoot class="fw-bold table-light"><tr>
           <td>Total</td>
-          <td class="text-end">${fmt(tPrev)}</td>
-          <td class="text-end">${fmt(tReal)}</td>
-          <td class="text-end" style="color:${difTotColor};font-size:0.85em">${difTot>0?'+':''}${Math.round(difTot)}€</td>
+          ${celdaTotales}
+          <td class="text-end">${fmt(totalAnio)}</td>
         </tr></tfoot>
-      </table>
+      </table></div>
     </div>`;
   }
+
   const el = document.getElementById('desglose-categorias');
-  if (el) el.innerHTML = html || '<p class="p-3 text-muted">No hay datos para este año.</p>';
+  if (el) el.innerHTML = html;
 }
 
 async function renderResumen() {
@@ -1533,10 +1561,12 @@ async function guardarPago() {
   showSpinner('Guardando...');
   const rows = [['mes','anio','importe','fecha','forma','notas'],
     ...state.pagosDeuda.map(p=>[p.mes,p.anio,p.importe,p.fecha,p.forma,p.notas])];
+  lsSet('deuda', rows);
   await apiWrite('deuda', rows);
   hideSpinner();
   showAlert('✅ Pago registrado');
   renderDeuda();
+  renderPatrimonio();
   // Asegurar que el collapse está abierto tras guardar
   const col = document.getElementById('collapse-deuda');
   if (col && !col.classList.contains('show')) bootstrap.Collapse.getOrCreateInstance(col).show();
