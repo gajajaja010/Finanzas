@@ -760,12 +760,16 @@ async function init() {
       if (fresh) state.categorias = fresh;
       migrarCategorias();
       state.pagosDeuda = parsePagos(dr);
+      lsSet('deuda', dr);
       state.inventario = parseInventario(ir);
       migrarURLsInventario();
       state.cuentaPadres = parseCuentaPadres(cpr);
       const fp = parsePatrimonio(pr);
       if (fp.length) state.patrimonio = fp;
       state.cuentaPorcelanas = parseCuentaPorcelanas(cp2r);
+      // Re-render vistas que dependen de los datos refrescados
+      renderDeuda();
+      renderPatrimonio();
     }).catch(()=>{});
   } else {
     showSpinner('Primera carga (solo esta vez)...');
