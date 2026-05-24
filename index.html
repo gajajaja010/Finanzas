@@ -145,6 +145,16 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
       </table></div></div>
     </div>
 
+    <div class="card mt-4 mb-2">
+      <div class="card-header d-flex justify-content-between align-items-center" style="background:var(--primary-light);color:var(--primary);cursor:pointer" data-bs-toggle="collapse" data-bs-target="#collapse-desglose">
+        <span>📂 Desglose anual por categoría</span>
+        <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="collapse" id="collapse-desglose">
+        <div class="card-body p-0" id="desglose-categorias"></div>
+      </div>
+    </div>
+
     <div class="mt-4">
       <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-deuda">
         <span><i class="bi bi-person-check"></i> Deuda Noelia</span>
@@ -1365,6 +1375,61 @@ function _dibujarResumen(resumenRows) {
   });
 }
 
+async function renderDesgloseCategorias() {
+  const anio = state.anioResumen;
+  const cats = state.categorias.filter(c => c.activa);
+  // Acumular real y previsto por cat_id leyendo los 12 meses de localStorage
+  const totReal = {}, totPrev = {};
+  cats.forEach(c => { totReal[c.id] = 0; totPrev[c.id] = 0; });
+  for (let m = 1; m <= 12; m++) {
+    const rows = lsGet(`mes_${anio}_${m}`);
+    if (!rows || rows.length < 2) continue;
+    rows.slice(1).forEach(r => {
+      const id = +r[0];
+      if (totReal[id] !== undefined) {
+        totReal[id] += +r[2] || 0;
+        totPrev[id] += +r[1] || 0;
+      }
+    });
+  }
+  let html = '';
+  for (const [secKey, secLabel] of Object.entries(SECCIONES)) {
+    const secCats = cats.filter(c => c.seccion === secKey);
+    if (!secCats.length) continue;
+    const esIngreso = secKey === 'ingresos';
+    const tReal = secCats.reduce((s,c) => s + totReal[c.id], 0);
+    const tPrev = secCats.reduce((s,c) => s + totPrev[c.id], 0);
+    const filas = secCats.map(c => {
+      const r = totReal[c.id], p = totPrev[c.id];
+      const dif = esIngreso ? (r - p) : (p - r);
+      const difColor = dif >= 0 ? '#059669' : '#dc2626';
+      return `<tr>
+        <td style="padding-left:1.5rem">${c.nombre}</td>
+        <td class="text-end">${fmt(p)}</td>
+        <td class="text-end fw-bold">${fmt(r)}</td>
+        <td class="text-end" style="color:${difColor};font-size:0.85em">${dif>0?'+':''}${Math.round(dif)}€</td>
+      </tr>`;
+    }).join('');
+    const difTot = esIngreso ? (tReal - tPrev) : (tPrev - tReal);
+    const difTotColor = difTot >= 0 ? '#059669' : '#dc2626';
+    html += `<div class="mb-0">
+      <div class="px-3 py-2 fw-bold small text-uppercase" style="background:var(--primary-light);color:var(--primary);letter-spacing:.05em">${secLabel}</div>
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light"><tr><th>Categoría</th><th class="text-end">Previsto</th><th class="text-end">Real</th><th class="text-end" style="width:80px">Dif.</th></tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot class="fw-bold table-light"><tr>
+          <td>Total</td>
+          <td class="text-end">${fmt(tPrev)}</td>
+          <td class="text-end">${fmt(tReal)}</td>
+          <td class="text-end" style="color:${difTotColor};font-size:0.85em">${difTot>0?'+':''}${Math.round(difTot)}€</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  }
+  const el = document.getElementById('desglose-categorias');
+  if (el) el.innerHTML = html || '<p class="p-3 text-muted">No hay datos para este año.</p>';
+}
+
 async function renderResumen() {
   document.getElementById('titulo-resumen').textContent = `📆 Resumen ${state.anioResumen}`;
   const cached = lsGet('resumen_anual');
@@ -1377,6 +1442,7 @@ async function renderResumen() {
     hideSpinner();
   }
   renderDeuda();
+  renderDesgloseCategorias();
 }
 
 function cambiarAnio(delta) {
