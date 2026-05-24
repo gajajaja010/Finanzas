@@ -1519,10 +1519,27 @@ function cambiarDeudaInicial() {
   showAlert('✅ Deuda inicial actualizada a ' + fmt(val));
 }
 
+function totalDevolucionMensual() {
+  // Suma el real de todas las categorías cuyo nombre incluya "devolución" o "devolucion" (Devolución deuda Noelia)
+  const catsDev = state.categorias.filter(c => c.nombre.toLowerCase().includes('devoluc'));
+  if (!catsDev.length) return 0;
+  let total = 0;
+  for (let anio = 2024; anio <= new Date().getFullYear(); anio++) {
+    for (let m = 1; m <= 12; m++) {
+      const rows = lsGet(`mes_${anio}_${m}`);
+      if (!rows || rows.length < 2) continue;
+      rows.slice(1).forEach(r => {
+        if (catsDev.find(c => c.id === +r[0])) total += +r[2] || 0;
+      });
+    }
+  }
+  return total;
+}
+
 function renderDeuda() {
   const inputEl = document.getElementById('deuda-inicial-input');
   if (inputEl && !inputEl.value) inputEl.value = getDeudaInicial();
-  const total = state.pagosDeuda.reduce((s,p)=>s+p.importe,0);
+  const total = totalDevolucionMensual();
   const pendiente = Math.max(0, getDeudaInicial() - total);
   const meses = Math.round(pendiente/200);
   const pct = Math.round(total/getDeudaInicial()*100);
@@ -1538,16 +1555,27 @@ function renderDeuda() {
   document.getElementById('d-mes').value = now.getMonth()+1;
   document.getElementById('d-anio').value = now.getFullYear();
 
-  if (!state.pagosDeuda.length) return;
-  const rows = state.pagosDeuda.map(p=>`<tr>
+  // Mostrar tabla mes a mes leyendo de los datos mensuales
+  const catsDev = state.categorias.filter(c => c.nombre.toLowerCase().includes('devoluc'));
+  const filasMes = [];
+  for (let anio = 2024; anio <= new Date().getFullYear(); anio++) {
+    for (let m = 1; m <= 12; m++) {
+      const mesRows = lsGet(`mes_${anio}_${m}`);
+      if (!mesRows || mesRows.length < 2) continue;
+      let importe = 0;
+      mesRows.slice(1).forEach(r => { if (catsDev.find(c=>c.id===+r[0])) importe += +r[2]||0; });
+      if (importe > 0) filasMes.push({mes:m, anio, importe});
+    }
+  }
+  if (!filasMes.length) return;
+  const rowsHtml = filasMes.map(p=>`<tr>
     <td>${MESES[p.mes]} ${p.anio}</td>
     <td class="text-end dif-pos">+${fmt(p.importe)}</td>
-    <td>${p.fecha||'—'}</td><td>${p.forma||'—'}</td><td>${p.notas||'—'}</td>
   </tr>`).join('');
   document.getElementById('tabla-deuda-container').innerHTML = `
     <div class="table-responsive"><table class="table table-hover mb-0">
-      <thead class="table-light"><tr><th>Mes/Año</th><th class="text-end">Importe</th><th>Fecha</th><th>Forma</th><th>Notas</th></tr></thead>
-      <tbody>${rows}</tbody>
+      <thead class="table-light"><tr><th>Mes/Año</th><th class="text-end">Importe</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
     </table></div>`;
 }
 
@@ -1791,7 +1819,7 @@ function guardarPatrimonioSheet() {
 function renderPatrimonio() {
   // Valores auto-calculados
   const totalColeccionables = state.inventario.reduce((s,i)=>s+i.precio,0);
-  const deudaNoelia = Math.max(0, getDeudaInicial() - state.pagosDeuda.reduce((s,p)=>s+p.importe,0));
+  const deudaNoelia = Math.max(0, getDeudaInicial() - totalDevolucionMensual());
   const saldoCuentaPadres = state.cuentaPadres.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0)
                           - state.cuentaPadres.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
   const saldoPorcelanas = state.cuentaPorcelanas.filter(m=>m.tipo!=='gasto').reduce((s,m)=>s+m.importe,0)
