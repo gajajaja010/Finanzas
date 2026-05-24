@@ -913,7 +913,7 @@ function renderMes() {
       const difMostrar = esIngreso ? dif : -dif;
       html += `<tr>
         <td>${c.nombre}</td>
-        <td><input type="number" step="0.01" class="form-control form-control-sm text-end" data-id="${c.id}" data-field="previsto" value="${d.previsto}"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-end" data-id="${c.id}" data-field="previsto" value="${d.previsto}" oninput="actualizarLocal(${c.id},'previsto',this.value,${esIngreso},${esNeutro},'${secKey}')"></td>
         <td><input type="number" step="0.01" class="form-control form-control-sm text-end input-real" style="${colorReal}" data-id="${c.id}" data-field="real" value="${d.real}" oninput="actualizarLocal(${c.id},'real',this.value,${esIngreso},${esNeutro},'${secKey}')"></td>
         <td><input type="text" class="form-control form-control-sm" data-id="${c.id}" data-field="notas" value="${d.notas||''}"></td>
         <td><span class="dif-col" id="dif-${c.id}">${txtDif(difMostrar)}</span></td>
