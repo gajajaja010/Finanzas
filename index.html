@@ -64,6 +64,7 @@ footer { margin-top: 3rem; padding: 1.5rem; text-align: center; color: #94a3b8; 
 </nav>
 
 <div class="container py-4">
+  <div id="ultima-act" class="text-muted small text-end mb-2"></div>
   <div id="alert-container"></div>
 
   <!-- MES -->
@@ -688,6 +689,33 @@ function showAlert(msg, type='success') {
   setTimeout(() => el.remove(), 3000);
 }
 
+// Fecha de la última vez que se añadió o cambió un dato económico
+function pintarUltimaAct(iso) {
+  const el = document.getElementById('ultima-act');
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d)) { el.textContent = ''; return; }
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dia = new Date(d); dia.setHours(0,0,0,0);
+  const dias = Math.round((hoy - dia) / 86400000);
+  const hace = dias === 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`;
+  const fecha = d.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const hora = d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  el.innerHTML = `<i class="bi bi-clock-history"></i> Última actualización: ${fecha}, ${hora} (${hace})`;
+}
+function leerUltimaAct(rows) {
+  return rows && rows.length > 1 ? rows[1][0] : null;
+}
+function marcarActualizacion() {
+  const ahora = new Date().toISOString();
+  apiWrite('ultima_actualizacion', [['fecha'], [ahora]]);
+  pintarUltimaAct(ahora);
+}
+async function cargarUltimaAct() {
+  pintarUltimaAct(leerUltimaAct(lsGet('ultima_actualizacion')));
+  const fresh = leerUltimaAct(await apiRefresh('ultima_actualizacion'));
+  if (fresh) pintarUltimaAct(fresh);
+}
+
 function fmt(n) { return (Math.round(n*100)/100).toLocaleString('es-ES', {minimumFractionDigits:0, maximumFractionDigits:0}) + '€'; }
 
 function parseCategorias(rows) {
@@ -734,6 +762,7 @@ function parseCuentaPorcelanas(rows) {
 }
 
 async function init() {
+  cargarUltimaAct();
   const catCached = lsGet('categorias');
   const deudaCached = lsGet('deuda');
   const cats = parseCategorias(catCached);
@@ -1013,6 +1042,7 @@ function actualizarLocal(id, field, val, esIngreso=false, esNeutro=false, secKey
     lsSet(_keyGuardar, rows);
     await apiWrite(_keyGuardar, rows);
     await actualizarResumenSheet();
+    marcarActualizacion();
     if (badge) { badge.textContent = '✓ Guardado'; badge.className = 'badge bg-success ms-2'; setTimeout(()=>{ badge.textContent=''; badge.className=''; },3000); }
   }, 2000);
 }
@@ -1029,6 +1059,7 @@ async function guardarMes() {
     ...Object.entries(state.datosMes).map(([id,d]) => [id, d.previsto, d.real, d.notas])];
   await apiWrite(key, rows);
   await actualizarResumenSheet();
+  marcarActualizacion();
   hideSpinner();
   showAlert('✅ Datos guardados correctamente');
   renderMes();
@@ -1196,6 +1227,7 @@ async function guardarCompra() {
   state.inventario.sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const rows = [['fecha','nombre','tipo','precio','notas','url','urlTienda'],...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||'',i.urlTienda||''])];
   await apiWrite('inventario', rows);
+  marcarActualizacion();
   cancelarEdicion();
   renderInventario();
 }
@@ -1206,6 +1238,7 @@ async function eliminarCompra(idx) {
   const rows = [['fecha','nombre','tipo','precio','notas','url'],
     ...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||''])];
   await apiWrite('inventario', rows);
+  marcarActualizacion();
   showAlert('✅ Compra eliminada');
   renderInventario();
 }
@@ -1267,6 +1300,7 @@ async function guardarMovimientoPadres() {
   const rows = [['fecha','tipo','concepto','importe'],
     ...state.cuentaPadres.map(m=>[m.fecha, m.tipo, m.concepto, m.importe])];
   await apiWrite('cuenta_padres', rows);
+  marcarActualizacion();
   document.getElementById('cp-concepto').value = '';
   document.getElementById('cp-importe').value  = '';
   showAlert(`✅ Movimiento añadido`);
@@ -1279,6 +1313,7 @@ async function eliminarMovimientoPadres(idx) {
   const rows = [['fecha','tipo','concepto','importe'],
     ...state.cuentaPadres.map(m=>[m.fecha, m.tipo, m.concepto, m.importe])];
   await apiWrite('cuenta_padres', rows);
+  marcarActualizacion();
   showAlert('✅ Movimiento eliminado');
   renderCuentaPadres();
 }
@@ -1334,6 +1369,7 @@ async function guardarCompraDelMes() {
   state.inventario.sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const rows = [['fecha','nombre','tipo','precio','notas','url','urlTienda'],...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||'',i.urlTienda||''])];
   await apiWrite('inventario', rows);
+  marcarActualizacion();
   document.getElementById('cm-nombre').value = '';
   document.getElementById('cm-precio').value = '';
   document.getElementById('cm-notas').value = '';
@@ -1616,6 +1652,7 @@ async function guardarPago() {
     ...state.pagosDeuda.map(p=>[p.mes,p.anio,p.importe,p.fecha,p.forma,p.notas])];
   lsSet('deuda', rows);
   await apiWrite('deuda', rows);
+  marcarActualizacion();
   hideSpinner();
   showAlert('✅ Pago registrado');
   renderDeuda();
@@ -1796,6 +1833,7 @@ async function guardarMovimientoPorcelanas() {
   const rows = [['fecha','tipo','concepto','importe'],...state.cuentaPorcelanas.map(m=>[m.fecha,m.tipo,m.concepto,m.importe])];
   lsSet('cuenta_porcelanas', rows);
   await apiWrite('cuenta_porcelanas', rows);
+  marcarActualizacion();
   document.getElementById('cp2-concepto').value = '';
   document.getElementById('cp2-importe').value  = '';
   showAlert('✅ Movimiento añadido');
@@ -1808,6 +1846,7 @@ async function eliminarMovimientoPorcelanas(idx) {
   const rows = [['fecha','tipo','concepto','importe'],...state.cuentaPorcelanas.map(m=>[m.fecha,m.tipo,m.concepto,m.importe])];
   lsSet('cuenta_porcelanas', rows);
   await apiWrite('cuenta_porcelanas', rows);
+  marcarActualizacion();
   showAlert('✅ Eliminado');
   renderCuentaPorcelanas();
 }
@@ -1932,6 +1971,7 @@ function guardarPartidaPatrimonio() {
     state.patrimonio.push({tipo:state.patModalTipo, nombre, valor});
   }
   guardarPatrimonioSheet();
+  marcarActualizacion();
   bootstrap.Modal.getInstance(document.getElementById('modalPatrimonio')).hide();
   renderPatrimonio();
 }
@@ -1941,6 +1981,7 @@ function borrarPartidaPatrimonio() {
   if (!confirm('¿Eliminar esta partida?')) return;
   state.patrimonio.splice(state.patModalIdx, 1);
   guardarPatrimonioSheet();
+  marcarActualizacion();
   bootstrap.Modal.getInstance(document.getElementById('modalPatrimonio')).hide();
   renderPatrimonio();
 }
