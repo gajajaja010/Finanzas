@@ -652,6 +652,7 @@ async function apiRefresh(sheet) {
   try {
     const r = await fetch(`${API}?sheet=${encodeURIComponent(sheet)}`);
     const d = await r.json();
+    if (d.ok === false || d.error) return null; // Sheets ha respondido con error: no es lo mismo que "hoja vacía"
     const rows = d.rows || [];
     lsSet(sheet, rows);
     return rows;
@@ -767,18 +768,12 @@ async function init() {
   const deudaCached = lsGet('deuda');
   const cats = parseCategorias(catCached);
 
-  const invCached = lsGet('inventario');
-  state.inventario = parseInventario(invCached);
-  if (!state.inventario.length) {
-    state.inventario = INVENTARIO_INICIAL.map(i=>({...i}));
-    const rows = [['fecha','nombre','tipo','precio','notas','url','urlTienda'],...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||'',i.urlTienda||''])];
-    apiWrite('inventario', rows);
-  }
-  state.cuentaPadres    = parseCuentaPadres(lsGet('cuenta_padres'));
+  // Lo guardado en este navegador se enseña ya; los datos iniciales de ejemplo
+  // solo se escriben en Sheets si la hoja no existe allí (ver sembrarSiNoExiste)
+  state.inventario       = parseInventario(lsGet('inventario'));
+  state.cuentaPadres     = parseCuentaPadres(lsGet('cuenta_padres'));
   state.cuentaPorcelanas = parseCuentaPorcelanas(lsGet('cuenta_porcelanas'));
-  const patCached = parsePatrimonio(lsGet('patrimonio'));
-  state.patrimonio = patCached.length ? patCached : PATRIMONIO_INICIAL.map(p=>({...p}));
-  if (!patCached.length) guardarPatrimonioSheet();
+  state.patrimonio       = parsePatrimonio(lsGet('patrimonio'));
 
   if (cats) {
     state.categorias = cats;
@@ -786,17 +781,18 @@ async function init() {
     cargarMes();
     migrarCategorias();
     Promise.all([apiRefresh('categorias'), apiRefresh('deuda'), apiRefresh('inventario'), apiRefresh('cuenta_padres'), apiRefresh('patrimonio'), apiRefresh('cuenta_porcelanas')]).then(([cr, dr, ir, cpr, pr, cp2r]) => {
+      // null = no se ha podido leer Sheets: se mantiene lo que había, no se vacía
       const fresh = parseCategorias(cr);
       if (fresh) state.categorias = fresh;
       migrarCategorias();
-      state.pagosDeuda = parsePagos(dr);
-      lsSet('deuda', dr);
-      state.inventario = parseInventario(ir);
+      if (dr !== null)   state.pagosDeuda = parsePagos(dr);
+      if (ir !== null)   state.inventario = parseInventario(ir);
+      if (cpr !== null)  state.cuentaPadres = parseCuentaPadres(cpr);
+      if (pr !== null)   state.patrimonio = parsePatrimonio(pr);
+      if (cp2r !== null) state.cuentaPorcelanas = parseCuentaPorcelanas(cp2r);
+      sembrarSiNoExiste(ir, pr);
       migrarURLsInventario();
-      state.cuentaPadres = parseCuentaPadres(cpr);
-      const fp = parsePatrimonio(pr);
-      if (fp.length) state.patrimonio = fp;
-      state.cuentaPorcelanas = parseCuentaPorcelanas(cp2r);
+      if ([dr, ir, cpr, pr, cp2r].includes(null)) avisarSinConexion();
       // Re-render vistas que dependen de los datos refrescados
       renderDeuda();
       renderPatrimonio();
@@ -806,23 +802,48 @@ async function init() {
     try {
       const catRows = await apiRefresh('categorias');
       const parsed = parseCategorias(catRows);
-      if (!parsed) {
-        state.categorias = CATS_DEFAULT.map((c,i) => ({id:i+1, ...c, activa:true}));
-        await guardarCategoriasSheet();
-      } else {
+      if (parsed) {
         state.categorias = parsed;
+      } else {
+        state.categorias = CATS_DEFAULT.map((c,i) => ({id:i+1, ...c, activa:true}));
+        if (catRows !== null && catRows.length === 0) await guardarCategoriasSheet();
       }
-      state.pagosDeuda = parsePagos(await apiRefresh('deuda'));
-      state.inventario = parseInventario(await apiRefresh('inventario'));
+      const dr = await apiRefresh('deuda'), ir = await apiRefresh('inventario');
+      const cpr = await apiRefresh('cuenta_padres'), cp2r = await apiRefresh('cuenta_porcelanas');
+      const pr = await apiRefresh('patrimonio');
+      state.pagosDeuda       = parsePagos(dr);
+      state.inventario       = parseInventario(ir);
+      state.cuentaPadres     = parseCuentaPadres(cpr);
+      state.cuentaPorcelanas = parseCuentaPorcelanas(cp2r);
+      state.patrimonio       = parsePatrimonio(pr);
+      sembrarSiNoExiste(ir, pr);
       migrarURLsInventario();
-      state.cuentaPadres     = parseCuentaPadres(await apiRefresh('cuenta_padres'));
-      state.cuentaPorcelanas = parseCuentaPorcelanas(await apiRefresh('cuenta_porcelanas'));
-      const fp = parsePatrimonio(await apiRefresh('patrimonio'));
-      if (fp.length) state.patrimonio = fp;
+      if ([catRows, dr, ir, cpr, pr, cp2r].includes(null)) avisarSinConexion();
     } catch(e) { console.error(e); }
     hideSpinner();
     await cargarMes();
   }
+}
+
+// Escribe los datos de ejemplo solo si la pestaña NO existe en Sheets
+// (respuesta vacía, ni siquiera la fila de títulos). Nunca si no se ha podido leer.
+function sembrarSiNoExiste(invRows, patRows) {
+  if (invRows !== null && invRows.length === 0) {
+    state.inventario = INVENTARIO_INICIAL.map(i=>({...i}));
+    const rows = [['fecha','nombre','tipo','precio','notas','url','urlTienda'],...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||'',i.urlTienda||''])];
+    apiWrite('inventario', rows);
+  }
+  if (patRows !== null && patRows.length === 0) {
+    state.patrimonio = PATRIMONIO_INICIAL.map(p=>({...p}));
+    guardarPatrimonioSheet();
+  }
+}
+
+function avisarSinConexion() {
+  const el = document.createElement('div');
+  el.className = 'alert alert-warning';
+  el.innerHTML = '⚠️ No se han podido leer todos los datos de Google Sheets. <strong>Recarga la página antes de guardar nada</strong> para no perder información.';
+  document.getElementById('alert-container').appendChild(el);
 }
 
 function migrarCategorias() {
