@@ -1256,8 +1256,7 @@ async function guardarCompra() {
 async function eliminarCompra(idx) {
   if (!confirm('¿Eliminar esta compra?')) return;
   state.inventario.splice(idx, 1);
-  const rows = [['fecha','nombre','tipo','precio','notas','url'],
-    ...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||''])];
+  const rows = [['fecha','nombre','tipo','precio','notas','url','urlTienda'],...state.inventario.map(i=>[i.fecha,i.nombre,i.tipo,i.precio,i.notas,i.url||'',i.urlTienda||''])];
   await apiWrite('inventario', rows);
   marcarActualizacion();
   showAlert('✅ Compra eliminada');
